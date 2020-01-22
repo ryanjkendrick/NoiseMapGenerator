@@ -13,13 +13,6 @@ import (
 	"strings"
 )
 
-const (
-	alpha       = 2.
-	beta        = 2.
-	n           = 3
-	seed  int64 = 100
-)
-
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatal("Please specify the path to save the generated image.")
