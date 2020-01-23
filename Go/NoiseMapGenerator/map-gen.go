@@ -11,7 +11,16 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/aquilax/go-perlin"
 )
+
+const (
+ 	alpha       = 2.
+ 	beta        = 2.
+ 	n           = 3
+ 	seed  int64 = 100
+ )
 
 func main() {
 	if len(os.Args) < 2 {
@@ -48,7 +57,7 @@ func main() {
 	img := createImage(width, height, background)
 	log.Print("Image created.")
 
-	img = randomizeImage(width, height, img)
+	img = perlinizeImage(width, height, img)
 	log.Print("Image randomized.")
 
 	if strings.HasSuffix(strings.ToLower(imgPath), ".jpg") {
@@ -85,6 +94,23 @@ func randomizeImage(width int, height int, img *image.RGBA) *image.RGBA {
 	}
 
 	return img
+}
+
+func perlinizeImage(width int, height int, img *image.RGBA) *image.RGBA {
+        for x := 0; x < width; x++ {
+                for y := 0; y < height; y++ {
+			randVal := rand.Intn(16777215 * 2)
+			p := perlin.NewPerlin(alpha, beta, randVal, seed)
+                        pixelVal := int(p.Noise2D(float64(x), float64(y))*200)
+
+			log.Print(pixelVal)
+
+                        r, g, b, a := calcColor(pixelVal)
+
+                        img.SetRGBA(x, y, color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
+                }
+        }
+        return img
 }
 
 func calcColor(color int) (red, green, blue, alpha int) {
