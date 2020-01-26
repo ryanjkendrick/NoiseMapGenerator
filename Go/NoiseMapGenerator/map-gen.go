@@ -16,11 +16,11 @@ import (
 )
 
 const (
- 	alpha       = 2.
- 	beta        = 2.
- 	n           = 3
- 	seed  int64 = 100
- )
+	alpha       = 5.
+	beta        = 2.
+	n           = 3
+	seed  int64 = 16777215
+)
 
 func main() {
 	if len(os.Args) < 2 {
@@ -36,29 +36,45 @@ func main() {
 	}
 
 	width, height := 1920, 1080
-	background := color.RGBA{0, 0xFF, 0, 0xCC}
+	background := color.RGBA{0xFF, 0, 0, 0xCC}
+	randomizeTheImage := false
 
-	if len(os.Args) == 4 {
+	if len(os.Args) >= 3 {
 		if n, err := strconv.Atoi(os.Args[2]); err == nil {
 			width = n
+		} else if os.Args[2] == "-r" {
+			randomizeTheImage = true
 		} else {
 			log.Fatal(os.Args[2], "is not an integer.")
 			os.Exit(1)
 		}
 
-		if n, err := strconv.Atoi(os.Args[3]); err == nil {
-			height = n
-		} else {
-			log.Fatal(os.Args[3], "is not an integer.")
-			os.Exit(1)
+		if !randomizeTheImage { // Randomize flag should be last parameter
+			if n, err := strconv.Atoi(os.Args[3]); err == nil {
+				height = n
+			} else if os.Args[3] == "-r" {
+				randomizeTheImage = true
+			} else {
+				log.Fatal(os.Args[3], "is not an integer.")
+				os.Exit(1)
+			}
 		}
+	}
+
+	if len(os.Args) == 5 && os.Args[4] == "-r" {
+		randomizeTheImage = true
 	}
 
 	img := createImage(width, height, background)
 	log.Print("Image created.")
 
-	img = perlinizeImage(width, height, img)
-	log.Print("Image randomized.")
+	if randomizeTheImage {
+		img = randomizeImage(width, height, img)
+		log.Print("Image randomized.")
+	} else {
+		img = perlinizeImage(width, height, img)
+		log.Print("Image Perlinized.")
+	}
 
 	if strings.HasSuffix(strings.ToLower(imgPath), ".jpg") {
 		var opt jpeg.Options
@@ -97,20 +113,21 @@ func randomizeImage(width int, height int, img *image.RGBA) *image.RGBA {
 }
 
 func perlinizeImage(width int, height int, img *image.RGBA) *image.RGBA {
-        for x := 0; x < width; x++ {
-                for y := 0; y < height; y++ {
-			randVal := rand.Intn(16777215 * 2)
-			p := perlin.NewPerlin(alpha, beta, randVal, seed)
-                        pixelVal := int(p.Noise2D(float64(x), float64(y))*200)
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			p := perlin.NewPerlinRandSource(alpha, beta, n, rand.NewSource(seed))
+			pixelVal := p.Noise2D(float64(x)/10, float64(y)/10) * 100000000.0
 
-			log.Print(pixelVal)
+			if pixelVal < 0 { // Hex color value cannot be negative
+				pixelVal *= -1
+			}
 
-                        r, g, b, a := calcColor(pixelVal)
+			r, g, b, a := calcColor(int(pixelVal))
 
-                        img.SetRGBA(x, y, color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
-                }
-        }
-        return img
+			img.SetRGBA(x, y, color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
+		}
+	}
+	return img
 }
 
 func calcColor(color int) (red, green, blue, alpha int) {
