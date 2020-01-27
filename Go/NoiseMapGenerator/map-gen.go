@@ -15,11 +15,17 @@ import (
 	"github.com/aquilax/go-perlin"
 )
 
+// Perlin
 const (
-	alpha       = 5.
-	beta        = 2.
+	alpha       = 1000. // His default was 2
+	beta        = 10.
 	n           = 3
-	seed  int64 = 16777215
+	seed  int64 = 100
+)
+
+
+const (
+	gridSize       = 4
 )
 
 func main() {
@@ -76,7 +82,7 @@ func main() {
 		log.Print("Image Perlinized.")
 	}
 
-	if strings.HasSuffix(strings.ToLower(imgPath), ".jpg") {
+	if path := strings.ToLower(imgPath); strings.HasSuffix(path, ".jpg") || strings.HasSuffix(path, ".jpeg") {
 		var opt jpeg.Options
 		opt.Quality = 100
 		err = jpeg.Encode(out, img, &opt)
@@ -102,7 +108,7 @@ func createImage(width int, height int, background color.RGBA) *image.RGBA {
 func randomizeImage(width int, height int, img *image.RGBA) *image.RGBA {
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
-			pixelVal := rand.Intn(16777215 * 2)
+			pixelVal := rand.Intn(16777215)
 			r, g, b, a := calcColor(pixelVal)
 
 			img.SetRGBA(x, y, color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
@@ -131,6 +137,8 @@ func perlinizeImage(width int, height int, img *image.RGBA) *image.RGBA {
 }
 
 func calcColor(color int) (red, green, blue, alpha int) {
+	//log.Print(color)
+
 	alpha = color & 0xFF
 	blue = (color >> 8) & 0xFF
 	green = (color >> 16) & 0xFF
