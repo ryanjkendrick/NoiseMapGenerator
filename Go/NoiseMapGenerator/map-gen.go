@@ -31,14 +31,12 @@ const (
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatal("Please specify the path to save the generated image.")
-		os.Exit(1)
 	}
 	imgPath := os.Args[1]
 
 	out, err := os.Create(imgPath)
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 
 	width, height := 1920, 1080
@@ -52,7 +50,6 @@ func main() {
 			randomizeTheImage = true
 		} else {
 			log.Fatal(os.Args[2], "is not an integer.")
-			os.Exit(1)
 		}
 
 		if !randomizeTheImage { // Randomize flag should be last parameter
@@ -62,7 +59,6 @@ func main() {
 				randomizeTheImage = true
 			} else {
 				log.Fatal(os.Args[3], "is not an integer.")
-				os.Exit(1)
 			}
 		}
 	}
@@ -71,20 +67,22 @@ func main() {
 		randomizeTheImage = true
 	}
 
-	img := createImage(width, height, background)
-	log.Print("Image created.")
+	log.Print("Generating Noise Map...")
 
 	var pixels [][]int
 	if randomizeTheImage {
-		pixels = randomizeImage(width, height)
-		log.Print("Graph randomized.")
+		pixels = createRandomMap(width, height)
+		log.Print("Map randomized.")
 	} else {
-		pixels = perlinizeImage(width, height)
-		log.Print("Graph perlinized.")
+		pixels = createPerlinMap(width, height)
+		log.Print("Map perlinized.")
 	}
 
+	img := createImage(width, height, background)
+	log.Print("Image created.")
+
 	img = convertArrayToImage(width, height, img, pixels)
-	log.Print("Mapped graph to image.")
+	log.Print("Mapped to image.")
 
 	if path := strings.ToLower(imgPath); strings.HasSuffix(path, ".jpg") || strings.HasSuffix(path, ".jpeg") {
 		var opt jpeg.Options
@@ -96,7 +94,6 @@ func main() {
 
 	if err != nil {
 		log.Fatal(err)
-		os.Exit(1)
 	}
 
 	log.Printf("Image saved to %s.\n", imgPath)
@@ -109,7 +106,7 @@ func createImage(width int, height int, background color.RGBA) *image.RGBA {
 	return img
 }
 
-func randomizeImage(width int, height int) [][]int {
+func createRandomMap(width int, height int) [][]int {
 	pixels := make([][]int, width)
 
 	for x := 0; x < width; x++ {
@@ -125,7 +122,7 @@ func randomizeImage(width int, height int) [][]int {
 	return pixels
 }
 
-func perlinizeImage(width int, height int) [][]int {
+func createPerlinMap(width int, height int) [][]int {
 	pixels := make([][]int, width)
 
 	for x := 0; x < width; x++ {
