@@ -23,9 +23,9 @@ const (
 	seed  int64 = 100
 )
 
-
 const (
-	gridSize       = 4
+	gridSize          = 4
+	threadPayloadSize = 10
 )
 
 func main() {
@@ -74,13 +74,17 @@ func main() {
 	img := createImage(width, height, background)
 	log.Print("Image created.")
 
+	var pixels [][]int
 	if randomizeTheImage {
-		img = randomizeImage(width, height, img)
-		log.Print("Image randomized.")
+		pixels = randomizeImage(width, height)
+		log.Print("Graph randomized.")
 	} else {
-		img = perlinizeImage(width, height, img)
-		log.Print("Image Perlinized.")
+		pixels = perlinizeImage(width, height)
+		log.Print("Graph perlinized.")
 	}
+
+	img = convertArrayToImage(width, height, img, pixels)
+	log.Print("Mapped graph to image.")
 
 	if path := strings.ToLower(imgPath); strings.HasSuffix(path, ".jpg") || strings.HasSuffix(path, ".jpeg") {
 		var opt jpeg.Options
@@ -105,21 +109,28 @@ func createImage(width int, height int, background color.RGBA) *image.RGBA {
 	return img
 }
 
-func randomizeImage(width int, height int, img *image.RGBA) *image.RGBA {
+func randomizeImage(width int, height int) [][]int {
+	pixels := make([][]int, width)
+
 	for x := 0; x < width; x++ {
+		pixels[x] = make([]int, height)
+
 		for y := 0; y < height; y++ {
 			pixelVal := rand.Intn(16777215)
-			r, g, b, a := calcColor(pixelVal)
 
-			img.SetRGBA(x, y, color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
+			pixels[x][y] = pixelVal
 		}
 	}
 
-	return img
+	return pixels
 }
 
-func perlinizeImage(width int, height int, img *image.RGBA) *image.RGBA {
+func perlinizeImage(width int, height int) [][]int {
+	pixels := make([][]int, width)
+
 	for x := 0; x < width; x++ {
+		pixels[x] = make([]int, height)
+
 		for y := 0; y < height; y++ {
 			p := perlin.NewPerlinRandSource(alpha, beta, n, rand.NewSource(seed))
 			pixelVal := p.Noise2D(float64(x)/10, float64(y)/10) * 100000000.0
@@ -128,12 +139,11 @@ func perlinizeImage(width int, height int, img *image.RGBA) *image.RGBA {
 				pixelVal *= -1
 			}
 
-			r, g, b, a := calcColor(int(pixelVal))
-
-			img.SetRGBA(x, y, color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
+			pixels[x][y] = int(pixelVal)
 		}
 	}
-	return img
+
+	return pixels
 }
 
 func calcColor(color int) (red, green, blue, alpha int) {
@@ -145,4 +155,15 @@ func calcColor(color int) (red, green, blue, alpha int) {
 	red = (color >> 24) & 0xFF
 
 	return red, green, blue, alpha
+}
+
+func convertArrayToImage(width int, height int, img *image.RGBA, pixels [][]int) *image.RGBA {
+	for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
+			r, g, b, a := calcColor(pixels[x][y])
+
+			img.SetRGBA(x, y, color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
+		}
+	}
+	return img
 }
