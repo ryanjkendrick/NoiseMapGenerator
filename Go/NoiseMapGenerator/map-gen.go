@@ -11,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/aquilax/go-perlin"
 )
@@ -124,13 +125,19 @@ func createRandomMap(width int, height int) [][]int {
 
 func createPerlinMap(width int, height int) [][]int {
 	pixels := make([][]int, width)
+	var timeToCreate time.Duration
 
 	for x := 0; x < width; x++ {
 		pixels[x] = make([]int, height)
 
 		for y := 0; y < height; y++ {
+			start := time.Now()
+
 			p := perlin.NewPerlinRandSource(alpha, beta, n, rand.NewSource(seed))
 			pixelVal := p.Noise2D(float64(x)/10, float64(y)/10) * 100000000.0
+
+			elapsed := time.Since(start)
+			timeToCreate += elapsed
 
 			if pixelVal < 0 { // Hex color value cannot be negative
 				pixelVal *= -1
@@ -140,7 +147,17 @@ func createPerlinMap(width int, height int) [][]int {
 		}
 	}
 
+	log.Printf("Perlin Generation took %s", timeToCreate)
+
 	return pixels
+}
+
+func convertColorToTerrain(color int) int {
+	if color <= 817410+10000 && color >= 817410-10000 {
+		return 815000
+	} else {
+		return 690000
+	}
 }
 
 func calcColor(color int) (red, green, blue, alpha int) {
@@ -157,7 +174,8 @@ func calcColor(color int) (red, green, blue, alpha int) {
 func convertArrayToImage(width int, height int, img *image.RGBA, pixels [][]int) *image.RGBA {
 	for x := 0; x < width; x++ {
 		for y := 0; y < height; y++ {
-			r, g, b, a := calcColor(pixels[x][y])
+			r, g, b, a := calcColor(convertColorToTerrain(pixels[x][y]))
+			//r, g, b, a := calcColor(pixels[x][y])
 
 			img.SetRGBA(x, y, color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)})
 		}
